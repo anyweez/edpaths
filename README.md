@@ -1,0 +1,2 @@
+# edpaths
+Elite Dangerous Paths
