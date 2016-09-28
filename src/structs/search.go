@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/rand"
 )
 
 type SpaceBucket struct {
@@ -219,6 +220,25 @@ func (graph *SpaceGraph) Get(id SystemID) *SpaceSystem {
 	} else {
 		return nil
 	}
+}
+
+/**
+ * This function is NOT performant and should not be used in production algorithms.
+ * Currently exists for testing only.
+ */
+func (graph *SpaceGraph) GetRandom() *SpaceSystem {
+	target := rand.Int() % len(graph.systems)
+
+	current := 0
+	for _, system := range graph.systems {
+		if current == target {
+			return system
+		}
+
+		current++
+	}
+
+	return nil
 }
 
 func InitGraph(radius float64) *SpaceGraph {

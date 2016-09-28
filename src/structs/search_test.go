@@ -32,3 +32,23 @@ func TestRoute(t *testing.T) {
 		fmt.Println("No path found")
 	}
 }
+
+func BenchmarkFindPath(b *testing.B) {
+	b.StopTimer()
+	db := Connect()
+	graph := InitGraph(1000).Load(db)
+
+	for i := 0; i < b.N; i++ {
+		// Choose starting and stopping points.
+		b.StopTimer()
+		start := graph.GetRandom()
+		end := graph.GetRandom()
+
+		// Run the search
+		b.StartTimer()
+		graph.FindPath(start, end, &RoutingConstraints{
+			MaxHops: 8,
+			MaxJump: 15,
+		})
+	}
+}

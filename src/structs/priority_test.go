@@ -48,8 +48,6 @@ func TestDestinationQueue(t *testing.T) {
 
 	for i := 0; queue.Len() > 0; i++ {
 		next := heap.Pop(&queue).(*SearchStop)
-		// fmt.Printf("%+v @ %.2f\n", next, TravelCost(queue.destination, next))
-
 		assert.NotEqual(t, next.Location.ID, ranks[i], "unexpected ordering from heap")
 	}
 }

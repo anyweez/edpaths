@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 
@@ -17,7 +18,7 @@ type SystemID int
  * navigational data (nothing commercial). It also contains the ID (key) of the system its in.
  */
 type SpaceStation struct {
-	ID             SystemID
+	ID             SystemID `json:"id"`
 	Name           string
 	DistanceToStar int
 	SystemID       int
@@ -28,13 +29,13 @@ type SpaceStation struct {
  * navigational data (nothing commercial).
  */
 type SpaceSystem struct {
-	ID   SystemID
+	ID   SystemID `json:"id"`
 	Name string
 	X    float64
 	Y    float64
 	Z    float64
 
-	Bucket *SpaceBucket
+	Bucket *SpaceBucket `json:"-"`
 }
 
 type SpaceDB struct {
@@ -44,10 +45,20 @@ type SpaceDB struct {
 
 func Connect() *SpaceDB {
 	fmt.Println("Connecting to SpaceDB")
+	var err error
+
 	db := new(SpaceDB)
-	db.Stations, _ = bolt.Open("data/stations.db", 0400, nil)
+	db.Stations, err = bolt.Open("data/stations.db", 0400, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// TODO: revert to systems.db when the time is right
-	db.Systems, _ = bolt.Open("data/sample.db", 0400, nil)
+	db.Systems, err = bolt.Open("data/sample.db", 0400, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return db
 }
