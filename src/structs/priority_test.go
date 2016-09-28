@@ -18,11 +18,26 @@ func CreateQueue() destinationQueue {
 
 	queue := NewDestinationQueue(destination)
 
-	heap.Push(&queue, &SpaceSystem{ID: 1, Name: "First Site", X: 5, Y: 3, Z: 5})
-	heap.Push(&queue, &SpaceSystem{ID: 2, Name: "Second Site", X: 0, Y: -1, Z: 2})
-	heap.Push(&queue, &SpaceSystem{ID: 3, Name: "Third Site", X: 5, Y: 2, Z: 5})
-	heap.Push(&queue, &SpaceSystem{ID: 4, Name: "Fourth Site", X: 0, Y: 0, Z: 0})
-	heap.Push(&queue, &SpaceSystem{ID: 5, Name: "Fifth Site", X: 6, Y: 5, Z: 5})
+	heap.Push(&queue, &SearchStop{
+		Location: &SpaceSystem{ID: 1, Name: "First Site", X: 5, Y: 3, Z: 5},
+		Hops:     0,
+	})
+	heap.Push(&queue, &SearchStop{
+		Location: &SpaceSystem{ID: 2, Name: "Second Site", X: 0, Y: -1, Z: 2},
+		Hops:     0,
+	})
+	heap.Push(&queue, &SearchStop{
+		Location: &SpaceSystem{ID: 3, Name: "Third Site", X: 5, Y: 2, Z: 5},
+		Hops:     0,
+	})
+	heap.Push(&queue, &SearchStop{
+		Location: &SpaceSystem{ID: 4, Name: "Fourth Site", X: 0, Y: 0, Z: 0},
+		Hops:     0,
+	})
+	heap.Push(&queue, &SearchStop{
+		Location: &SpaceSystem{ID: 5, Name: "Fifth Site", X: 6, Y: 5, Z: 5},
+		Hops:     0,
+	})
 
 	return queue
 }
@@ -32,9 +47,9 @@ func TestDestinationQueue(t *testing.T) {
 	ranks := []int{5, 1, 3, 2, 4} // expected ordering of ID's
 
 	for i := 0; queue.Len() > 0; i++ {
-		next := heap.Pop(&queue).(*SpaceSystem)
+		next := heap.Pop(&queue).(*SearchStop)
 		// fmt.Printf("%+v @ %.2f\n", next, TravelCost(queue.destination, next))
 
-		assert.NotEqual(t, next.ID, ranks[i], "unexpected ordering from heap")
+		assert.NotEqual(t, next.Location.ID, ranks[i], "unexpected ordering from heap")
 	}
 }
