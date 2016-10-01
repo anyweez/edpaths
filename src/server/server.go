@@ -16,9 +16,13 @@ type RouteResponse struct {
 func main() {
 	db := structs.Connect()
 	graph := structs.InitGraph(1000).Load(db)
+	terms := structs.NewAutocomplete(db)
 
 	router := gin.Default()
 
+	/**
+	 * Primary route; used for pathfinding between two destinations.
+	 */
 	router.GET("/route", func(ctx *gin.Context) {
 		if ctx.Query("from") == "" || ctx.Query("to") == "" {
 			ctx.JSON(http.StatusBadRequest, RouteResponse{
@@ -47,6 +51,17 @@ func main() {
 				Route:  route,
 			})
 		}
+	})
+
+	/**
+	 * Secondary route: used for autocompleting system names.
+	 */
+
+	router.GET("/search", func(ctx *gin.Context) {
+		query := ctx.Query("q")
+
+		// Find terms
+		ctx.JSON(http.StatusOK, terms.GetAll(query, 5))
 	})
 
 	router.Run()
