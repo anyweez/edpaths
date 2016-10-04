@@ -1,0 +1,67 @@
+@import '../../node_modules/foundation-sites/scss/foundation';
+
+@include foundation-global-styles;
+@include foundation-grid;
+
+/* Color scheme: https://coolors.co/4f7cac-565959-fcf7f8-ced3dc-5da271 */
+$color-background: #FCF7F8;
+$color-font: #565959;
+$color-primary-action: #5DA271;
+$color-secondary-action: #CED3DC;
+$color-highlight-content: #4F7CAC;
+
+@import 'header';
+@import 'body';
+@import 'footer';
+
+body {
+  background-color: $color-background;
+  color: $color-font;
+}
+
+h2 {
+  margin: 0;
+  width: 100%;
+  display: inline-block;
+}
+
+li {
+  list-style-type: none;  
+}
+
+p {
+  margin: 0;
+}
+
+.hide {
+  display: none;
+}
+
+.route-overview {
+  display: flex;
+  flex-direction: row;
+  margin: 0 auto;
+  width: 80%;
+}
+
+.route-overview div:first-child {
+  text-align: right;
+  margin-left: 10%;
+}
+
+.route-overview div:last-child {
+  text-align: left;
+}
+
+.route-overview div {
+  width: 30%;
+}
+
+.route-overview p {
+  width: 20%;
+  margin: 25px 0;
+}
+
+.route-overview * {
+  margin: 10px 0;
+}

@@ -1,0 +1,59 @@
+$systempicker-height: 50px;
+
+/* SystemPicker stuff */
+.system-picker {
+    vertical-align: top;
+    position: relative;
+
+    @include grid-row();
+
+    * {
+        vertical-align: top;
+        box-sizing: border-box;
+        font-size: 1.2em;
+        font-weight: 200;
+    }
+
+    input[type="text"] {
+        height: $systempicker-height;
+        padding-left: 10px;
+        border: 1px solid #333;
+
+        @include grid-column(12);
+    }
+
+    button {
+        height: $systempicker-height;
+        border: 1px solid #333;
+        background-color: $color-primary-action;
+        color: $color-background;
+
+        @include grid-column(2);
+    }
+
+    /* System options */
+    .system-options {
+        @include grid-column(10);
+        text-align: left;
+        padding: 0;
+        margin: 0;
+
+        position: absolute;
+        top: $systempicker-height;
+        left: 0;
+        right: 0;
+        background-color: white;
+        border: 1px solid #333;
+        border-top-width: 0;
+
+    }
+
+    li {
+        padding: 5px;
+        cursor: pointer;
+
+        &:hover {
+            background-color: $color-secondary-action;
+        }
+    }
+}

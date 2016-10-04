@@ -1,0 +1,74 @@
+.route-list {
+    @include grid-row();
+    padding: 0;
+    text-align: left;
+
+    .route-leg {
+        & > h2 {
+            font-size: 1em;
+            font-style: italic;
+            font-weight: normal;
+
+            cursor: pointer;
+
+            padding: 4px  0 4px 15px;
+            margin: 5px 30px;
+            border-left: 2px solid $color-font;
+        }
+    }
+
+    /* Route stuff */
+    .route-stop {
+        @include grid-row();
+
+        background-color: #CED3DC;
+        border: 1px solid $color-font;
+        margin: 5px 0;
+        padding: 5px 15px 10px 15px;
+        width: 100%;
+        opacity: 0.8;
+
+        * {
+            vertical-align: top;
+        }
+
+        p {
+            @include grid-column(2);
+            /* Ew gross who wrote this. Actually overwriting Foundation's hyperspecific media query. */
+            padding-left: 0 !important;
+        }
+
+        button {
+            @include grid-column(1);
+
+            color: $color-font;
+            height: 50px;
+            margin: 7px 0 0 0;
+            background-color: white;
+
+            span {
+                display: block;
+                line-height: 1.3em;
+            }
+
+            .btn-heading {
+                font-weight: bold;
+            }
+
+            .btn-detail {
+                font-style: italic;
+                font-size: 0.9em;
+            }
+        }
+
+        .stop-details {
+            @include grid-column(11);
+        }
+    }
+
+    .route-stop.requested {
+        background-color: #4F7CAC;
+        color: $color-background;
+        opacity: 1;
+    }
+}

@@ -1,0 +1,108 @@
+body {
+  margin: 0 10%;
+  padding: 0;
+  font-family: sans-serif;
+}
+
+h2 {
+  margin: 0;
+  width: 100%;
+  display: inline-block;
+}
+
+li {
+  list-style-type: none;
+}
+
+.hide {
+  display: none;
+}
+
+/* SystemPicker stuff */
+.system-picker {
+  vertical-align: top;
+  position: relative;
+}
+
+.system-picker * {
+  vertical-align: top;
+  box-sizing: border-box;
+  font-size: 1.2em;
+  font-weight: 200;
+}
+
+input[type="text"] {
+  height: 50px;
+  padding-left: 10px;
+  width: 80%;
+  border-right-width: 0;
+  border: 1px solid #333;
+}
+
+button {
+  height: 50px;
+  width: 20%;
+  border: 1px solid #333;
+}
+
+.system-picker .system-options {
+  text-align: left;
+  width: 80%;
+  padding: 0;
+  margin: 0;
+
+  position: absolute;
+  top: 50px;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #333;
+  border-top-width: 0;
+}
+
+.system-options li {
+  padding: 5px;
+  cursor: pointer;
+}
+
+.system-options li:hover {
+  background-color: #3c3;
+}
+
+/* Route stuff */
+.route-stop {
+  opacity: 0.4;
+}
+.route-stop.requested {
+  background-color: #22cccc;
+  opacity: 1;
+}
+
+.route-overview {
+  display: flex;
+  flex-direction: row;
+  margin: 0 auto;
+  width: 80%;
+}
+
+.route-overview div:first-child {
+  text-align: right;
+  margin-left: 10%;
+}
+
+.route-overview div:last-child {
+  text-align: left;
+}
+
+.route-overview div {
+  width: 30%;
+}
+
+.route-overview p {
+  width: 20%;
+  margin: 25px 0;
+}
+
+.route-overview * {
+  margin: 10px 0;
+}
