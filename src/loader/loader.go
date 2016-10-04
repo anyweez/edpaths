@@ -19,6 +19,7 @@ import (
 	"os"
 	"strconv"
 	"structs"
+	"sync"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -28,62 +29,59 @@ import (
  * Reads in all station data and adds each record to a Bolt database keyed by station ID.
  * Also outputs a CSV containing all station names and their ID.
  */
-func stations() {
-	fp, _ := os.Open("data/stations.json")
-	decoder := json.NewDecoder(fp)
+// func stations() {
+// 	fp, _ := os.Open("data/stations.json")
+// 	decoder := json.NewDecoder(fp)
 
-	db, _ := bolt.Open("data/stations.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
-	db.Update(func(tx *bolt.Tx) error {
-		tx.CreateBucketIfNotExists([]byte("stations"))
-		return nil
-	})
-	defer db.Close()
+// 	db, _ := bolt.Open("data/stations.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
+// 	db.Update(func(tx *bolt.Tx) error {
+// 		tx.CreateBucketIfNotExists([]byte("stations"))
+// 		return nil
+// 	})
+// 	defer db.Close()
 
-	out, _ := os.Create("data/stations.csv")
-	csv := csv.NewWriter(out)
-	csv.Write([]string{"name", "id"})
+// 	out, _ := os.Create("data/stations.csv")
+// 	csv := csv.NewWriter(out)
+// 	csv.Write([]string{"name", "id"})
 
-	decoder.Token()
-	for decoder.More() {
-		var station structs.SpaceStation
+// 	decoder.Token()
+// 	for decoder.More() {
+// 		var station structs.SpaceStation
 
-		if err := decoder.Decode(&station); err != nil {
-			log.Fatal(err)
-		}
+// 		if err := decoder.Decode(&station); err != nil {
+// 			log.Fatal(err)
+// 		}
 
-		// Update the database
-		db.Update(func(tx *bolt.Tx) error {
-			b := tx.Bucket([]byte("stations"))
+// 		// Update the database
+// 		db.Update(func(tx *bolt.Tx) error {
+// 			b := tx.Bucket([]byte("stations"))
 
-			raw := new(bytes.Buffer)
-			gob.NewEncoder(raw).Encode(station)
-			b.Put([]byte(strconv.Itoa(int(station.ID))), raw.Bytes())
+// 			raw := new(bytes.Buffer)
+// 			gob.NewEncoder(raw).Encode(station)
+// 			b.Put([]byte(strconv.Itoa(int(station.ID))), raw.Bytes())
 
-			return nil
-		})
+// 			return nil
+// 		})
 
-		// Update the CSV
-		csv.Write([]string{station.Name, strconv.Itoa(int(station.ID))})
-	}
-	decoder.Token()
-	csv.Flush()
+// 		// Update the CSV
+// 		csv.Write([]string{station.Name, strconv.Itoa(int(station.ID))})
+// 	}
+// 	decoder.Token()
+// 	csv.Flush()
 
-	if err := csv.Error(); err != nil {
-		log.Fatal(err)
-	}
-}
+// 	if err := csv.Error(); err != nil {
+// 		log.Fatal(err)
+// 	}
+// }
 
-func systems() {
-	fp, _ := os.Open("data/systems.json")
-	decoder := json.NewDecoder(fp)
-
+func systems(in chan structs.SpaceSystem, status *sync.WaitGroup) {
 	// Set up (new) or load (existing) database and prepare to make some changes.
-	db, _ := bolt.Open("data/systems.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
-	db.Update(func(tx *bolt.Tx) error {
+	fullDb, _ := bolt.Open("data/systems.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
+	fullDb.Update(func(tx *bolt.Tx) error {
 		tx.CreateBucketIfNotExists([]byte("systems"))
 		return nil
 	})
-	defer db.Close()
+	defer fullDb.Close()
 
 	sampleDb, _ := bolt.Open("data/sample.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
 	sampleDb.Update(func(tx *bolt.Tx) error {
@@ -98,16 +96,9 @@ func systems() {
 
 	centroid := structs.SpaceSystem{X: 100, Y: 100, Z: 100}
 
-	decoder.Token()
-	for decoder.More() {
-		var system structs.SpaceSystem
-
-		if err := decoder.Decode(&system); err != nil {
-			log.Fatal(err)
-		}
-
+	for system := range in {
 		// Update the database
-		db.Update(func(tx *bolt.Tx) error {
+		fullDb.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte("systems"))
 
 			raw := new(bytes.Buffer)
@@ -135,15 +126,77 @@ func systems() {
 		// Update the CSV
 		csv.Write([]string{system.Name, strconv.Itoa(int(system.ID))})
 	}
-	decoder.Token()
+
+	status.Done()
 }
 
 func main() {
-	// Read JSON objects from stream.
-	// As they're read, add to Bolt
-	// Write <name>\t<id> to CSV
-	fmt.Println("Reading station data...")
-	// stations()
+	var status sync.WaitGroup
+	status.Add(1)
+
+	sys := make(chan structs.SpaceSystem, 100)
+
 	fmt.Println("Reading system data...")
-	systems()
+	go LoadSystems(sys)
+	go systems(sys, &status)
+
+	status.Wait()
+}
+
+/**
+ * Read all systems and bodies and push them out into the provided channel once they're
+ * available.
+ */
+func LoadSystems(out chan structs.SpaceSystem) {
+	// Load bodies first and generate the `powered` map
+	powered := make(map[structs.SystemID]bool)
+
+	scoopable := []string{"O", "B", "A", "F", "G", "K", "M"}
+	bfp, _ := os.Open("data/bodies.json")
+	bDecoder := json.NewDecoder(bfp)
+
+	bDecoder.Token()
+	for bDecoder.More() {
+		var body structs.SpaceBody
+
+		if err := bDecoder.Decode(&body); err != nil {
+			log.Fatal(err)
+		}
+
+		// If we're dealing with a star, check to see whether its scoopable
+		powered[body.SystemID] = false
+
+		if body.GroupID == 6 {
+			for _, class := range scoopable {
+				if body.SpectralClass == class {
+					powered[body.SystemID] = true
+				}
+			}
+		}
+	}
+	bDecoder.Token()
+
+	// Load systems
+	fp, _ := os.Open("data/systems.json")
+	decoder := json.NewDecoder(fp)
+
+	decoder.Token()
+	for decoder.More() {
+		var system structs.SpaceSystem
+
+		if err := decoder.Decode(&system); err != nil {
+			log.Fatal(err)
+		}
+
+		if status, exists := powered[system.ID]; exists {
+			system.ContainsScoopableStar = status
+		} else {
+			system.ContainsScoopableStar = false
+		}
+
+		out <- system
+	}
+
+	decoder.Token()
+	close(out)
 }
