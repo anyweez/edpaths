@@ -24,9 +24,9 @@ type RoutingConstraints struct {
 }
 
 type SpaceRoute struct {
-	Origin      *SpaceSystem
-	Destination *SpaceSystem
-	Stops       []*SpaceSystem
+	Origin      *SpaceStop
+	Destination *SpaceStop
+	Stops       []*SpaceStop
 	Distance    float64
 
 	// Debug info, probably to be removed
@@ -57,12 +57,6 @@ func (graph *SpaceGraph) FindBucket(system *SpaceSystem) (SystemID, SystemID, Sy
 	return SystemID(x), SystemID(y), SystemID(z)
 }
 
-// TODO: find best route among combination of points
-
-func (graph *SpaceGraph) FindRoute(from *SpaceSystem, to *SpaceSystem, cons *RoutingConstraints) *SpaceRoute {
-	return graph._findRoute(from, to, cons, 0)
-}
-
 func (graph *SpaceGraph) FindPath(from *SpaceSystem, to *SpaceSystem, cons *RoutingConstraints) *SpaceRoute {
 	visited := make(map[*SpaceSystem]bool)
 	queued := make(map[*SpaceSystem]bool)
@@ -91,28 +85,35 @@ func (graph *SpaceGraph) FindPath(from *SpaceSystem, to *SpaceSystem, cons *Rout
 		}
 
 		checks++
-
 		visited[current.Location] = true // mark the current location as visited
-		// fmt.Printf("Checking %+v (distance %.2f)\n", current.Location, TravelCost(current.Location, to))
 
-		// 	// Return success!
+		// Return success! We've reached our destination
 		if current.Location.ID == to.ID {
-			var unwound []*SpaceSystem
+			var unwound []*SpaceStop
+			var prev *SpaceSystem
 			current := to
 
 			for current != nil {
-				unwound = append([]*SpaceSystem{current}, unwound...)
+				stop := current.AsStop()
+				unwound = append([]*SpaceStop{stop}, unwound...)
+
+				prev = current
 				current = path[current]
+
+				if current != nil {
+					stop.DistanceFromPrev = current.DistanceTo(prev)
+				}
 			}
 
 			distance := 0.0
 			for i := 1; i < len(unwound); i++ {
-				distance += unwound[i].DistanceTo(unwound[i-1])
+				distance += unwound[i].DistanceFromPrev
+				// distance += unwound[i].DistanceTo(unwound[i-1])
 			}
 
 			return &SpaceRoute{
-				Origin:      from,
-				Destination: to,
+				Origin:      from.AsStop(),
+				Destination: to.AsStop(),
 				Distance:    distance,
 				Stops:       unwound,
 				Checks:      checks,
@@ -121,7 +122,7 @@ func (graph *SpaceGraph) FindPath(from *SpaceSystem, to *SpaceSystem, cons *Rout
 
 		// Investigate each neighbor if they haven't been investigated yet (if they have then we already found a
 		// shorter way to get there and a loop isn't going to help).
-		for _, near := range graph.Within(current.Location, cons.MaxJump) {
+		for _, near := range graph.Proximity(current.Location, cons.MaxJump) {
 			if !visited[near] {
 				score := costFromOrigin[current.Location] + current.Location.DistanceTo(near)
 
@@ -136,7 +137,6 @@ func (graph *SpaceGraph) FindPath(from *SpaceSystem, to *SpaceSystem, cons *Rout
 					continue
 				}
 
-				// fmt.Printf("Juicy new path from %s to %s\n  So far: %.2f\n  Remaining: %.2f\n", current.Location.Name, near.Name, score, TravelCost(near, to))
 				path[near] = current.Location
 				costFromOrigin[near] = score
 				costToDestination[near] = costFromOrigin[current.Location] + TravelCost(current.Location, to)
@@ -153,47 +153,104 @@ func (graph *SpaceGraph) FindPath(from *SpaceSystem, to *SpaceSystem, cons *Rout
  *
  * This currently only looks through the same bucket as the origin system. Need to expand that.
  */
-func (graph *SpaceGraph) Within(origin *SpaceSystem, radius float64) []*SpaceSystem {
+func (graph *SpaceGraph) Proximity(origin *SpaceSystem, radius float64) []*SpaceSystem {
 	var items []*SpaceSystem
 
-	x, y, z := graph.FindBucket(origin)
-	for _, loc := range graph.Buckets[x][y][z].Systems {
-		if origin.DistanceTo(loc) < radius {
-			items = append(items, loc)
+	// Get all nearby buckets (including the current one) and scan all systems in each bucket.
+	buckets := graph.NearbyBuckets(origin, radius)
+	for _, bucket := range buckets {
+		for _, loc := range bucket.Systems {
+			if origin.DistanceTo(loc) < radius {
+				items = append(items, loc)
+			}
 		}
 	}
 
 	return items
 }
 
-func (graph *SpaceGraph) _findRoute(from *SpaceSystem, to *SpaceSystem, cons *RoutingConstraints, depth int) *SpaceRoute {
-	// Base case: found the destination
-	if from.ID == to.ID {
-		return &SpaceRoute{
-			Origin:      from,
-			Destination: to,
-			Distance:    0,
-			Stops:       []*SpaceSystem{from},
-		}
-	} else if depth == cons.MaxHops {
-		return nil
+/**
+ * Return all buckets within the radius of the origin, including the bucket the origin is currently in.
+ * It should only return each bucket one time, and buckets will be pointers to the actual buckets.
+ */
+func (graph *SpaceGraph) NearbyBuckets(origin *SpaceSystem, radius float64) []*SpaceBucket {
+	start := graph.GetBucket(graph.FindBucket(origin))
+	buckets := []*SpaceBucket{start}
+
+	// Get the bucket in the -x direction
+	xDown := graph.GetBucket(graph.FindBucket(&SpaceSystem{
+		X: origin.X - radius,
+		Y: origin.Y,
+		Z: origin.Z,
+	}))
+
+	if xDown != start {
+		buckets = append(buckets, xDown)
 	}
 
-	// Get all jump options
-	options := graph.Within(from, cons.MaxJump)
-	// Sort by distance of destination with `to`
+	// Get the bucket in the +x direction
+	xUp := graph.GetBucket(graph.FindBucket(&SpaceSystem{
+		X: origin.X + radius,
+		Y: origin.Y,
+		Z: origin.Z,
+	}))
 
-	// Recursively call all options
-	var best *SpaceRoute
-	for _, dest := range options {
-		route := graph._findRoute(dest, to, cons, depth+1)
-
-		if best == nil || route.Distance < best.Distance {
-			best = route
-		}
+	if xUp != start {
+		buckets = append(buckets, xUp)
 	}
 
-	return best
+	// Get the bucket in the -y direction
+	yDown := graph.GetBucket(graph.FindBucket(&SpaceSystem{
+		X: origin.X,
+		Y: origin.Y - radius,
+		Z: origin.Z,
+	}))
+
+	if yDown != start {
+		buckets = append(buckets, yDown)
+	}
+
+	// Get the bucket in the +y direction
+	yUp := graph.GetBucket(graph.FindBucket(&SpaceSystem{
+		X: origin.X,
+		Y: origin.Y + radius,
+		Z: origin.Z,
+	}))
+
+	if yUp != start {
+		buckets = append(buckets, yUp)
+	}
+
+	// Get the bucket in the -z direction
+	zDown := graph.GetBucket(graph.FindBucket(&SpaceSystem{
+		X: origin.X,
+		Y: origin.Y,
+		Z: origin.Z - radius,
+	}))
+
+	if zDown != start {
+		buckets = append(buckets, zDown)
+	}
+
+	// Get the bucket in the +z direction
+	zUp := graph.GetBucket(graph.FindBucket(&SpaceSystem{
+		X: origin.X,
+		Y: origin.Y,
+		Z: origin.Z + radius,
+	}))
+
+	if zUp != start {
+		buckets = append(buckets, zUp)
+	}
+
+	return buckets
+}
+
+/**
+ * Simple function to provide an abstraction over the bucket storage schema.
+ */
+func (graph *SpaceGraph) GetBucket(x SystemID, y SystemID, z SystemID) *SpaceBucket {
+	return graph.Buckets[x][y][z]
 }
 
 func (graph *SpaceGraph) Add(system *SpaceSystem) error {
@@ -207,8 +264,8 @@ func (graph *SpaceGraph) Add(system *SpaceSystem) error {
 
 	// fmt.Printf("adding to (%d, %d, %d)\n", x, y, z)
 	// Add to the cell's buckets
-	system.Bucket = graph.Buckets[x][y][z]
-	graph.Buckets[x][y][z].Systems = append(graph.Buckets[x][y][z].Systems, system)
+	system.Bucket = graph.GetBucket(x, y, z)
+	system.Bucket.Systems = append(system.Bucket.Systems, system)
 	graph.systems[system.ID] = system
 
 	return nil
@@ -292,4 +349,16 @@ func (graph *SpaceGraph) LoadSample() *SpaceGraph {
 	graph.Add(&SpaceSystem{ID: 6, Name: "Sixth Site", X: 2.5, Y: 2.5, Z: 2.5})
 
 	return graph
+}
+
+/**
+ * Merge two routes together. The callee is modified to include data from the extension (parameter).
+ */
+func (route *SpaceRoute) Merge(next *SpaceRoute) {
+	// Copy all stops except the first (which should be the last of `route`)
+	route.Stops = append(route.Stops, next.Stops[1:len(next.Stops)]...)
+	route.Destination = next.Destination
+
+	route.Distance += next.Distance
+	route.Checks += next.Checks
 }

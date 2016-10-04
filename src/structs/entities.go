@@ -35,7 +35,27 @@ type SpaceSystem struct {
 	Y    float64
 	Z    float64
 
-	Bucket *SpaceBucket `json:"-"`
+	Bucket                *SpaceBucket `json:"-"`
+	ContainsScoopableStar bool
+	ContainsRefuelStation bool
+}
+
+type SpaceBody struct {
+	ID       int
+	GroupID  int      `json:"group_id"` // 6 = star
+	SystemID SystemID `json:"system_id"`
+
+	SpectralClass string `json:"spectral_class"`
+}
+
+type SpaceStop struct {
+	System           *SpaceSystem
+	DistanceFromPrev float64
+	RequestedStop    bool
+	// ID                    SystemID
+	// Name                  string
+	// ContainsScoopableStar bool
+	// ContainsRefuelStation bool
 }
 
 type SpaceDB struct {
@@ -102,4 +122,10 @@ func (db *SpaceDB) ForEachSystem(each func(SpaceSystem)) {
 
 func (src *SpaceSystem) DistanceTo(dest *SpaceSystem) float64 {
 	return math.Sqrt((dest.X-src.X)*(dest.X-src.X) + (dest.Y-src.Y)*(dest.Y-src.Y) + (dest.Z-src.Z)*(dest.Z-src.Z))
+}
+
+func (src *SpaceSystem) AsStop() *SpaceStop {
+	return &SpaceStop{
+		System: src,
+	}
 }
