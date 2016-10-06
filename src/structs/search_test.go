@@ -2,10 +2,16 @@ package structs
 
 import (
 	"fmt"
+	"structs"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func BenchmarkLoad(t *testing.T) {
+	db := structs.Connect("sample")
+	db.ForEachSystem(func(system SpaceSystem) {})
+}
 
 func TestRoute(t *testing.T) {
 	graph := InitGraph(1000).LoadSample()

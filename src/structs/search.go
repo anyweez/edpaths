@@ -327,15 +327,20 @@ func InitGraph(radius float64) *SpaceGraph {
 		}
 	}
 
-	fmt.Println("Populating graph...")
-
 	return graph
 }
 
 func (graph *SpaceGraph) Load(db *SpaceDB) *SpaceGraph {
+	fmt.Println("Populating graph...")
+
+	count := 0
+	// TODO: object copy here is probably grotesquely inefficient
 	db.ForEachSystem(func(system SpaceSystem) {
 		graph.Add(&system)
+		count++
 	})
+
+	fmt.Printf("Loaded %d systems.", count)
 
 	return graph
 }

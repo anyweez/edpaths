@@ -63,7 +63,7 @@ type SpaceDB struct {
 	Systems  *bolt.DB
 }
 
-func Connect() *SpaceDB {
+func Connect(dbPath string) *SpaceDB {
 	fmt.Println("Connecting to SpaceDB")
 	var err error
 
@@ -74,7 +74,7 @@ func Connect() *SpaceDB {
 	}
 
 	// TODO: revert to systems.db when the time is right
-	db.Systems, err = bolt.Open("data/sample.db", 0400, nil)
+	db.Systems, err = bolt.Open("data/"+dbPath+".db", 0400, nil)
 
 	if err != nil {
 		log.Fatal(err)
