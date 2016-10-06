@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"structs" // local
 	"sync"
 	"time"
-	"fmt"
 
 	"github.com/fighterlyt/permutation"
 	"github.com/gin-gonic/gin"
@@ -20,20 +20,17 @@ type RouteResponse struct {
 }
 
 func main() {
-	db := structs.Connect()
+	db := structs.Connect("sample")
 	graph := structs.InitGraph(1000).Load(db)
 	terms := structs.NewAutocomplete(db)
 
-	fmt.Printf("%+v\n", graph.Get(69374));
-	fmt.Printf("%+v\n", graph.Get(704));
-
 	router := gin.Default()
 	router.Use(cors.Middleware(cors.Config{
-    	Origins:        "*",
-    	Methods:        "GET",
-    	RequestHeaders: "Origin, Authorization, Content-Type",
-    	ExposedHeaders: "",
-    	MaxAge: 50 * time.Second,
+		Origins:        "*",
+		Methods:        "GET",
+		RequestHeaders: "Origin, Authorization, Content-Type",
+		ExposedHeaders: "",
+		MaxAge:         50 * time.Second,
 	}))
 
 	/**
@@ -90,10 +87,10 @@ func main() {
 		if len(visit) == 0 && endID == 0 {
 			orig := graph.Get(startID).AsStop()
 			orig.RequestedStop = true
-			
+
 			ctx.JSON(http.StatusOK, RouteResponse{
 				Status: http.StatusOK,
-				Route:  &structs.SpaceRoute{
+				Route: &structs.SpaceRoute{
 					Origin: orig,
 				},
 			})
@@ -107,7 +104,7 @@ func main() {
 
 			ctx.JSON(http.StatusOK, RouteResponse{
 				Status: http.StatusOK,
-				Route:  &structs.SpaceRoute{
+				Route: &structs.SpaceRoute{
 					Destination: dest,
 				},
 			})
@@ -215,9 +212,16 @@ func main() {
 
 // TODO: test this
 func getVariants(start structs.SystemID, end structs.SystemID, visit []structs.SystemID) [][]structs.SystemID {
+	var variants [][]structs.SystemID
+
+	// If no visits are provided, start and end are required.
+	if len(visit) == 0 {
+		variants = append(variants, []structs.SystemID{start, end})
+		return variants
+	}
+
 	gen, _ := permutation.NewPerm(visit, nil)
 
-	var variants [][]structs.SystemID
 	for gen.Left() > 0 {
 		next, _ := gen.Next()
 		nextIds := next.([]structs.SystemID)
