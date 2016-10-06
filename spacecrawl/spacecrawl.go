@@ -11,6 +11,7 @@ import (
 	"github.com/anyweez/edpaths/structs" // local
 
 	"github.com/fighterlyt/permutation"
+	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
 )
@@ -208,6 +209,7 @@ func main() {
 		ctx.JSON(http.StatusOK, terms.GetAll(query, 5))
 	})
 
+	router.Use(static.Serve("/", static.LocalFile("./web/build", true)))
 	router.Run()
 }
 
