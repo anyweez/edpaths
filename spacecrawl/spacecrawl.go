@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"flag"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,19 +21,46 @@ type RouteResponse struct {
 	Route  *structs.SpaceRoute
 }
 
+type ServerConfig struct {
+	ReleaseMode   bool
+	SystemsTarget string
+	CellSize      int
+}
+
+var config ServerConfig
+
+func init() {
+	_releaseMode := flag.Bool("release", false, "execute in release mode")
+	_systemsTarget := flag.String("systems", "systems", "set of systems to read")
+	_cellSize := flag.Int("cell", 1000, "size of cell, in light years")
+
+	flag.Parse()
+
+	config.ReleaseMode = *_releaseMode
+	config.SystemsTarget = *_systemsTarget
+	config.CellSize = *_cellSize
+}
+
 func main() {
-	db := structs.Connect("sample")
-	graph := structs.InitGraph(1000).Load(db)
+	db := structs.Connect(config.SystemsTarget)
+	graph := structs.InitGraph(float64(config.CellSize)).Load(db)
 	terms := structs.NewAutocomplete(db)
 
+	if config.ReleaseMode {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	router := gin.Default()
-	router.Use(cors.Middleware(cors.Config{
-		Origins:        "*",
-		Methods:        "GET",
-		RequestHeaders: "Origin, Authorization, Content-Type",
-		ExposedHeaders: "",
-		MaxAge:         50 * time.Second,
-	}))
+
+	if !config.ReleaseMode {
+		router.Use(cors.Middleware(cors.Config{
+			Origins:        "*",
+			Methods:        "GET",
+			RequestHeaders: "Origin, Authorization, Content-Type",
+			ExposedHeaders: "",
+			MaxAge:         50 * time.Second,
+		}))
+	}
 
 	/**
 	 * Primary route; used for pathfinding between two destinations. This handler is fairly
@@ -53,7 +80,6 @@ func main() {
 
 			return
 		}
-		fmt.Println("routing")
 
 		var startID structs.SystemID // where to start
 		var endID structs.SystemID   // where to end
