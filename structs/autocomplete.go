@@ -17,7 +17,7 @@ func NewAutocomplete(db *SpaceDB) Autocomplete {
 	}
 
 	// Populate the autocorrecter
-	db.ForEachSystem(func(system SpaceSystem) {
+	db.ForEachSystem(func(system *SpaceSystem) {
 		ac.Add(&SystemRecord{
 			Name: system.Name,
 			ID:   system.ID,

@@ -10,19 +10,16 @@ package main
  */
 
 import (
-	"bytes"
-	"encoding/csv"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 	"sync"
-	"time"
 
 	"github.com/anyweez/edpaths/structs"
-	"github.com/boltdb/bolt"
+	"github.com/anyweez/edpaths/structs/gen"
+	"github.com/golang/protobuf/proto"
 )
 
 /**
@@ -76,56 +73,36 @@ import (
 
 func systems(in chan structs.SpaceSystem, status *sync.WaitGroup) {
 	// Set up (new) or load (existing) database and prepare to make some changes.
-	fullDb, _ := bolt.Open("data/systems.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
-	fullDb.Update(func(tx *bolt.Tx) error {
-		tx.CreateBucketIfNotExists([]byte("systems"))
-		return nil
-	})
-	defer fullDb.Close()
-
-	sampleDb, _ := bolt.Open("data/sample.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
-	sampleDb.Update(func(tx *bolt.Tx) error {
-		tx.CreateBucketIfNotExists([]byte("systems"))
-		return nil
-	})
-	defer sampleDb.Close()
-
-	out, _ := os.Create("data/systems.csv")
-	csv := csv.NewWriter(out)
-	csv.Write([]string{"name", "id"})
+	full := space.Universe{}
+	sample := space.Universe{}
 
 	centroid := structs.SpaceSystem{X: 100, Y: 100, Z: 100}
 
 	for system := range in {
-		// Update the database
-		fullDb.Update(func(tx *bolt.Tx) error {
-			b := tx.Bucket([]byte("systems"))
+		id := int32(system.ID)
+		nextSystem := space.SpaceSystem{
+			SystemID: &id,
+			Name:     &system.Name,
+			X:        &system.X,
+			Y:        &system.Y,
+			Z:        &system.Z,
+			ContainsScoopableStar: &system.ContainsScoopableStar,
+			ContainsRefuelStation: &system.ContainsRefuelStation,
+		}
 
-			raw := new(bytes.Buffer)
-			gob.NewEncoder(raw).Encode(system)
-
-			b.Put([]byte(strconv.Itoa(int(system.ID))), raw.Bytes())
-
-			return nil
-		})
+		full.Systems = append(full.Systems, &nextSystem)
 
 		// Update the sample DB iff its within 100 LY of the definied centroid
 		if centroid.DistanceTo(&system) < 100 {
-			sampleDb.Update(func(tx *bolt.Tx) error {
-				b := tx.Bucket([]byte("systems"))
-
-				raw := new(bytes.Buffer)
-				gob.NewEncoder(raw).Encode(system)
-
-				b.Put([]byte(strconv.Itoa(int(system.ID))), raw.Bytes())
-
-				return nil
-			})
+			sample.Systems = append(sample.Systems, &nextSystem)
 		}
-
-		// Update the CSV
-		csv.Write([]string{system.Name, strconv.Itoa(int(system.ID))})
 	}
+
+	fullOut, _ := proto.Marshal(&full)
+	sampleOut, _ := proto.Marshal(&sample)
+
+	ioutil.WriteFile("data/systems.db", fullOut, 0644)
+	ioutil.WriteFile("data/sample.db", sampleOut, 0644)
 
 	status.Done()
 }

@@ -335,12 +335,12 @@ func (graph *SpaceGraph) Load(db *SpaceDB) *SpaceGraph {
 
 	count := 0
 	// TODO: object copy here is probably grotesquely inefficient
-	db.ForEachSystem(func(system SpaceSystem) {
-		graph.Add(&system)
+	db.ForEachSystem(func(system *SpaceSystem) {
+		graph.Add(system)
 		count++
 	})
 
-	fmt.Printf("Loaded %d systems.", count)
+	fmt.Printf("Loaded %d systems.\n", count)
 
 	return graph
 }

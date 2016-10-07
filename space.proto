@@ -1,0 +1,16 @@
+package space;
+
+message SpaceSystem {
+    required int32 SystemID = 1;
+    required string Name = 2;
+    required double X = 3;
+    required double Y = 4;
+    required double Z = 5;
+
+    required bool ContainsScoopableStar = 6 [default = false];
+    required bool ContainsRefuelStation = 7 [default = false];
+}
+
+message Universe {
+    repeated SpaceSystem systems = 1; 
+}

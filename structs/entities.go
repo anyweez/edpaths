@@ -1,14 +1,15 @@
 package structs
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math"
-	"strconv"
 
-	"github.com/boltdb/bolt"
+	"github.com/anyweez/edpaths/structs/gen"
+	// "github.com/boltdb/bolt"
+	// "github.com/boltdb/bolt"
+	"github.com/golang/protobuf/proto"
 )
 
 type SystemID int
@@ -59,8 +60,8 @@ type SpaceStop struct {
 }
 
 type SpaceDB struct {
-	Stations *bolt.DB
-	Systems  *bolt.DB
+	Stations []*SpaceSystem
+	Systems  []*SpaceSystem
 }
 
 func Connect(dbPath string) *SpaceDB {
@@ -68,13 +69,26 @@ func Connect(dbPath string) *SpaceDB {
 	var err error
 
 	db := new(SpaceDB)
-	db.Stations, err = bolt.Open("data/stations.db", 0400, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	systems, _ := ioutil.ReadFile("data/" + dbPath + ".db")
 
-	// TODO: revert to systems.db when the time is right
-	db.Systems, err = bolt.Open("data/"+dbPath+".db", 0400, nil)
+	universe := space.Universe{}
+	proto.Unmarshal(systems, &universe)
+
+	db.Systems = make([]*SpaceSystem, len(universe.GetSystems()))
+
+	for i, sys := range universe.GetSystems() {
+		// Space is actually allocated for all systems here, and only here. Any other
+		// data structure should maintain a reference to this object.
+		db.Systems[i] = &SpaceSystem{
+			ID:   SystemID(sys.GetSystemID()),
+			Name: sys.GetName(),
+			X:    sys.GetX(),
+			Y:    sys.GetY(),
+			Z:    sys.GetZ(),
+			ContainsRefuelStation: sys.GetContainsRefuelStation(),
+			ContainsScoopableStar: sys.GetContainsScoopableStar(),
+		}
+	}
 
 	if err != nil {
 		log.Fatal(err)
@@ -85,39 +99,43 @@ func Connect(dbPath string) *SpaceDB {
 
 // systemDb := bolt.Open("data/systems.db", 0400, nil)
 
-func (db *SpaceDB) GetSystem(id int) SpaceSystem {
-	var system SpaceSystem
-	var raw []byte
+// func (db *SpaceDB) GetSystem(id int) SpaceSystem {
+// 	var system SpaceSystem
+// 	var raw []byte
 
-	db.Systems.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("systems"))
-		v := bucket.Get([]byte(strconv.Itoa(id)))
+// 	db.Systems.View(func(tx *bolt.Tx) error {
+// 		bucket := tx.Bucket([]byte("systems"))
+// 		v := bucket.Get([]byte(strconv.Itoa(id)))
 
-		// Resize the raw array and copy data in
-		raw = make([]byte, len(v))
-		copy(raw, v)
+// 		// Resize the raw array and copy data in
+// 		raw = make([]byte, len(v))
+// 		copy(raw, v)
 
-		return nil
-	})
+// 		return nil
+// 	})
 
-	gob.NewDecoder(bytes.NewReader(raw)).Decode(&system)
-	return system
-}
+// 	gob.NewDecoder(bytes.NewReader(raw)).Decode(&system)
+// 	return system
+// }
 
-func (db *SpaceDB) ForEachSystem(each func(SpaceSystem)) {
-	db.Systems.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("systems"))
-		all := bucket.Cursor()
+func (db *SpaceDB) ForEachSystem(each func(*SpaceSystem)) {
+	for _, system := range db.Systems {
+		each(system)
+	}
 
-		for k, v := all.First(); k != nil; k, v = all.Next() {
-			var system SpaceSystem
-			gob.NewDecoder(bytes.NewReader(v)).Decode(&system)
+	// db.Systems.View(func(tx *bolt.Tx) error {
+	// 	bucket := tx.Bucket([]byte("systems"))
+	// 	all := bucket.Cursor()
 
-			each(system)
-		}
+	// 	for k, v := all.First(); k != nil; k, v = all.Next() {
+	// 		var system SpaceSystem
+	// 		gob.NewDecoder(bytes.NewReader(v)).Decode(&system)
 
-		return nil
-	})
+	// 		each(system)
+	// 	}
+
+	// 	return nil
+	// })
 }
 
 func (src *SpaceSystem) DistanceTo(dest *SpaceSystem) float64 {
