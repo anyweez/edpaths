@@ -25,7 +25,6 @@ export class RouteStop extends Component {
                 </div>
 
                 { sys.RequestedStop ? (<button onClick={() => this.remove(sys.System.id)}><span className="btn-heading">Remove</span><span className="btn-detail">(-xx.xxly) </span></button>) : null }
-                <p></p>
             </li>
         );
     }

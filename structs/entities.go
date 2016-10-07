@@ -97,45 +97,10 @@ func Connect(dbPath string) *SpaceDB {
 	return db
 }
 
-// systemDb := bolt.Open("data/systems.db", 0400, nil)
-
-// func (db *SpaceDB) GetSystem(id int) SpaceSystem {
-// 	var system SpaceSystem
-// 	var raw []byte
-
-// 	db.Systems.View(func(tx *bolt.Tx) error {
-// 		bucket := tx.Bucket([]byte("systems"))
-// 		v := bucket.Get([]byte(strconv.Itoa(id)))
-
-// 		// Resize the raw array and copy data in
-// 		raw = make([]byte, len(v))
-// 		copy(raw, v)
-
-// 		return nil
-// 	})
-
-// 	gob.NewDecoder(bytes.NewReader(raw)).Decode(&system)
-// 	return system
-// }
-
 func (db *SpaceDB) ForEachSystem(each func(*SpaceSystem)) {
 	for _, system := range db.Systems {
 		each(system)
 	}
-
-	// db.Systems.View(func(tx *bolt.Tx) error {
-	// 	bucket := tx.Bucket([]byte("systems"))
-	// 	all := bucket.Cursor()
-
-	// 	for k, v := all.First(); k != nil; k, v = all.Next() {
-	// 		var system SpaceSystem
-	// 		gob.NewDecoder(bytes.NewReader(v)).Decode(&system)
-
-	// 		each(system)
-	// 	}
-
-	// 	return nil
-	// })
 }
 
 func (src *SpaceSystem) DistanceTo(dest *SpaceSystem) float64 {

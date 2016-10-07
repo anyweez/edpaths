@@ -34,7 +34,7 @@ p {
 }
 
 .hide {
-  display: none;
+  display: none !important;
 }
 
 .route-overview {

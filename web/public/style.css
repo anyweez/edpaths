@@ -1450,7 +1450,7 @@ p {
   margin: 0; }
 
 .hide {
-  display: none; }
+  display: none !important; }
 
 .route-overview {
   display: flex;

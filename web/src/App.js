@@ -12,6 +12,9 @@ class App extends Component {
   }
 
   render() {
+    let state = this.props.state.getState();
+    console.log(`Stops: ${state.stops.length}`)
+
     return (
       <div className="App">
         <header>
@@ -19,12 +22,12 @@ class App extends Component {
         </header>
         <main>
           <SystemPicker onActivate={id => this.add(id)} />
-          <section className="route-overview">
-            <SystemHeading system={this.props.state.getState().origin} />
-            <p>{this.props.state.getState().distance}ly to</p>
-            <SystemHeading system={this.props.state.getState().destination} />
+          <section className={`route-overview ${state.stops.length > 1 ? '' : 'hide'}`}>
+            <SystemHeading system={state.origin} />
+            <p>{state.distance}ly to</p>
+            <SystemHeading system={state.destination} />
           </section>
-          <RouteList stops={this.props.state.getState().stops}></RouteList>
+          <RouteList stops={state.stops}></RouteList>
         </main>
       </div>
     );
