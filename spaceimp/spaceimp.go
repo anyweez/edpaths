@@ -77,24 +77,25 @@ func systems(in chan structs.SpaceSystem, status *sync.WaitGroup) {
 	sample := space.Universe{}
 
 	centroid := structs.SpaceSystem{X: 100, Y: 100, Z: 100}
+	var nextSystem *space.SpaceSystem
 
 	for system := range in {
 		id := int32(system.ID)
-		nextSystem := space.SpaceSystem{
-			SystemID: &id,
-			Name:     &system.Name,
-			X:        &system.X,
-			Y:        &system.Y,
-			Z:        &system.Z,
-			ContainsScoopableStar: &system.ContainsScoopableStar,
-			ContainsRefuelStation: &system.ContainsRefuelStation,
-		}
 
-		full.Systems = append(full.Systems, &nextSystem)
+		nextSystem = new(space.SpaceSystem)
+		nextSystem.SystemID = proto.Int32(id)
+		nextSystem.Name = proto.String(system.Name)
+		nextSystem.X = proto.Float64(system.X)
+		nextSystem.Y = proto.Float64(system.Y)
+		nextSystem.Z = proto.Float64(system.Z)
+		nextSystem.ContainsScoopableStar = proto.Bool(system.ContainsScoopableStar)
+		nextSystem.ContainsRefuelStation = proto.Bool(system.ContainsRefuelStation)
+
+		full.Systems = append(full.Systems, nextSystem)
 
 		// Update the sample DB iff its within 100 LY of the definied centroid
 		if centroid.DistanceTo(&system) < 100 {
-			sample.Systems = append(sample.Systems, &nextSystem)
+			sample.Systems = append(sample.Systems, nextSystem)
 		}
 	}
 
