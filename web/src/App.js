@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import './App.css';
 
 import { SystemPicker } from './components/SystemPicker';
 import { SystemHeading } from './components/SystemHeading';
@@ -7,7 +6,7 @@ import { RouteList } from './components/RouteList';
 import { addToRoute } from './actions/route';
 
 class App extends Component {
-  add(id) {
+  add(id) { 
     this.props.state.dispatch(addToRoute(id));
   }
 

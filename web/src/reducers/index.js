@@ -1,17 +1,12 @@
 import { Reducers } from '../constants/reducers';
 import { RequestRoute } from '../api/route';
-// import { RequestRoute } from '../api/request';
 
 const initial = {
     origin: null,
     destination: null,
     distance: 0.0,
 
-    stops: [
-        // { id: 0, Distance: 0, RequestedStop: true, System: { Name: 'First stop', ContainsScoopableStar: false } },
-        // { id: 1, Distance: 10.1, System: { Name: 'Second stop', ContainsScoopableStar: false } },
-        // { id: 2, Distance: 12.5, System: { Name: 'Third stop', ContainsScoopableStar: false } },
-    ],
+    stops: [],
 
     ui: {
         updatingRoute: false,
