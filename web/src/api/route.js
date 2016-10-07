@@ -10,7 +10,7 @@ export function RequestRoute(start, stop, visit) {
     console.log('RequestRoute:')
     console.log(start, stop, visit);
     let stops = visit.join(',');
-    fetch(`http://localhost:8080/route?from=${start}&visit=${stops}`)
+    fetch(`/route?from=${start}&visit=${stops}`)
         .then(res => res.json())
         .then(result => {
             console.log(result);
