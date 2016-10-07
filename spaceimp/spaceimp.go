@@ -142,9 +142,12 @@ func LoadSystems(out chan structs.SpaceSystem) {
 		}
 
 		// If we're dealing with a star, check to see whether its scoopable
-		powered[body.SystemID] = false
+		_, exists := powered[body.SystemID]
+		if !exists {
+			powered[body.SystemID] = false
+		}
 
-		if body.GroupID == 6 {
+		if body.GroupID == 2 {
 			for _, class := range scoopable {
 				if body.SpectralClass == class {
 					powered[body.SystemID] = true
@@ -152,6 +155,7 @@ func LoadSystems(out chan structs.SpaceSystem) {
 			}
 		}
 	}
+
 	bDecoder.Token()
 
 	// Load systems
