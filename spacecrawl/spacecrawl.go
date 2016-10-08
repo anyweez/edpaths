@@ -167,12 +167,15 @@ func main() {
 				})
 
 				for current < len(variant) {
-					upcoming := graph.FindPath(now, next, &structs.RoutingConstraints{MaxJump: 18.0, MaxHops: 100})
-					// Mark beginning and end as requested stops.
-					upcoming.Stops[0].RequestedStop = true
-					upcoming.Stops[len(upcoming.Stops)-1].RequestedStop = true
+					upcoming := graph.FindPath(now, next, &structs.RoutingConstraints{MaxJump: 18.0, MaxHops: 200})
 
-					route.Merge(upcoming)
+					if upcoming != nil {
+						// Mark beginning and end as requested stops.
+						upcoming.Stops[0].RequestedStop = true
+						upcoming.Stops[len(upcoming.Stops)-1].RequestedStop = true
+
+						route.Merge(upcoming)
+					}
 
 					// move on to the next leg
 					current++
